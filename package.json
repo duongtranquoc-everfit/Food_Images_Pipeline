@@ -1,0 +1,28 @@
+{
+  "name": "sheet-image-downloader",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run build.ts --watch",
+    "build": "bun run build.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@mantine/core": "^8.3.16",
+    "@mantine/dropzone": "^8.3.16",
+    "@mantine/hooks": "^8.3.16",
+    "jimp": "^1.6.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.11"
+  }
+}
