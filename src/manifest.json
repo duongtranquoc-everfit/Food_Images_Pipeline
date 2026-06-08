@@ -1,10 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "Sheet Image Downloader",
-  "version": "1.0.0",
-  "description": "Download and resize product images from CSV/XLSX files",
-  "permissions": ["sidePanel", "storage"],
+  "name": "Food Image Pipeline",
+  "version": "2.0.0",
+  "description": "Find, process, and upload food images — from Google Sheets to Google Drive",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "contextMenus",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "identity"
+  ],
   "host_permissions": ["<all_urls>"],
+  "oauth2": {
+    "client_id": "1049683790942-6csfgrnqvs23rl9asfai89qj1bp5nlmr.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive"
+    ]
+  },
   "background": {
     "service_worker": "service-worker.js",
     "type": "module"
@@ -13,7 +28,7 @@
     "default_path": "panel/index.html"
   },
   "action": {
-    "default_title": "Sheet Image Downloader",
+    "default_title": "Food Image Pipeline",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

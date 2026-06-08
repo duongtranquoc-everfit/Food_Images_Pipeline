@@ -187,16 +187,16 @@ export async function removeBackground(imageBuffer: Buffer): Promise<Buffer> {
     throw new Error("No upload target found on remove.bg page");
   }
 
-  // Poll for result canvas — check + capture combined in one eval to reduce subprocess calls
+  // Poll for result canvas, then wait for full-quality render before capturing
   const startTime = Date.now();
-  let pollInterval = 500; // Start fast, ramp up gradually
+  let pollInterval = 500;
   let pollCount = 0;
   while (Date.now() - startTime < REMOVEBG_TIMEOUT_MS) {
     await Bun.sleep(pollInterval);
     pollCount++;
 
-    // Combined check + capture: if result canvas found, immediately extract base64
-    const pollJs = `(function() {
+    // Step 1: Check if result canvas exists (lightweight — no capture yet)
+    const checkJs = `(function() {
   var canvases = document.querySelectorAll('canvas');
   if (canvases.length === 0) return 'no-canvas';
   for (var i = 0; i < canvases.length; i++) {
@@ -208,8 +208,7 @@ export async function removeBackground(imageBuffer: Buffer): Promise<Buffer> {
       if (corner[3] > 0) continue;
       var center = ctx.getImageData(Math.floor(c.width/2), Math.floor(c.height/2), 1, 1).data;
       if (center[3] === 0) continue;
-      // Found result canvas — capture immediately (saves one subprocess call)
-      return 'DATA:' + c.toDataURL('image/png').substring(22);
+      return 'FOUND:' + i + ':' + c.width + 'x' + c.height;
     } catch(e) { continue; }
   }
   var spinner = document.querySelector('[class*="spinner"], [class*="loading"], [class*="progress"]');
@@ -217,12 +216,38 @@ export async function removeBackground(imageBuffer: Buffer): Promise<Buffer> {
   return 'waiting';
 })()`;
 
-    const status = await neoEval(pollJs);
+    const status = await neoEval(checkJs);
 
-    if (status.startsWith("DATA:")) {
-      const resultBase64 = status.substring(5);
+    if (status.startsWith("FOUND:")) {
+      const canvasIdx = status.split(":")[1];
+      const initialSize = status.split(":")[2];
+      console.log(`[neo] Result canvas detected: index=${canvasIdx}, size=${initialSize}`);
+
+      // Step 2: Stabilization — wait for full-quality render
+      // remove.bg often upgrades the canvas from low-res preview to full quality
+      console.log("[neo] Waiting 2s for full-quality render...");
+      await Bun.sleep(2000);
+
+      // Step 3: Capture the stabilized, full-quality canvas
+      const captureJs = `(function() {
+  var c = document.querySelectorAll('canvas')[${canvasIdx}];
+  if (!c) return 'ERROR:no-canvas';
+  try {
+    return 'DATA:' + c.width + 'x' + c.height + ':' + c.toDataURL('image/png').substring(22);
+  } catch(e) { return 'ERROR:' + e.message; }
+})()`;
+
+      const result = await neoEval(captureJs);
+
+      if (result.startsWith("ERROR:")) {
+        throw new Error(`Canvas capture failed: ${result}`);
+      }
+
+      const parts = result.split(":");
+      const finalSize = parts[1];
+      const resultBase64 = parts.slice(2).join(":");
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[neo] BG removed in ${elapsed}s (${pollCount} polls)`);
+      console.log(`[neo] BG removed in ${elapsed}s — canvas: ${initialSize} → ${finalSize} (${pollCount} polls)`);
       return Buffer.from(resultBase64, "base64");
     }
 

@@ -2,7 +2,6 @@ import type { JobConfig, JobState, FileTask } from "../shared/types";
 import { MSG } from "../shared/constants";
 import { broadcastToAll } from "../utils/messaging";
 import { fetchImage } from "../services/image-fetcher";
-import { resizeImage } from "../services/image-resizer";
 
 type JobStatus = JobState["status"];
 
@@ -117,16 +116,10 @@ export class JobManager {
 
         if (this.state.status === "stopped") break;
 
-        // Step 2: Resize
-        this.updateFileStatus(file, "resizing");
-        const resizedData = await resizeImage(imageData);
-
-        if (this.state.status === "stopped") break;
-
-        // Step 3: Save
+        // Step 2: Save (resize handled by Neo server in new pipeline)
         this.updateFileStatus(file, "saving");
         if (this.onFileReady) {
-          await this.onFileReady(file.name, new Uint8Array(resizedData));
+          await this.onFileReady(file.name, new Uint8Array(imageData));
         }
 
         this.updateFileStatus(file, "done");

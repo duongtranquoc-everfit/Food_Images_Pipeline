@@ -1,7 +1,6 @@
 import { useRef, useCallback } from "react";
 import { useJobStore } from "../store/job-store";
-import { fetchImage } from "../../services/image-fetcher";
-import { resizeImage } from "../../services/image-resizer";
+import { processViaServer } from "../../services/neo-server";
 import { FileWriter } from "../../services/file-writer";
 import type { JobState, FileTask } from "../../shared/types";
 
@@ -85,21 +84,16 @@ export function useJobRunner() {
         state.currentFile = file.name;
 
         try {
-          // Download
+          // Process via Neo server (fetch + removebg + resize)
           updateFileStatus(state, i, "downloading");
-          const imageData = await fetchImage(file.url, abortRef.current.signal);
-
-          if (statusRef.current === "stopped") break;
-
-          // Resize
-          updateFileStatus(state, i, "resizing");
-          const resized = await resizeImage(imageData);
+          const resizedBlob = await processViaServer(file.url, 1000, 650, abortRef.current.signal);
+          const resizedBuffer = new Uint8Array(await resizedBlob.arrayBuffer());
 
           if (statusRef.current === "stopped") break;
 
           // Save
           updateFileStatus(state, i, "saving");
-          await fileWriterRef.current.writeFile(file.name, new Uint8Array(resized));
+          await fileWriterRef.current.writeFile(file.name, resizedBuffer);
 
           updateFileStatus(state, i, "done");
           state.completedFiles++;

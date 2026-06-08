@@ -1,10 +1,14 @@
+// === Local Mode Types (legacy) ===
+
 export type JobStatus = "idle" | "running" | "paused" | "stopped" | "completed";
 
 export type FileStatus =
   | "queued"
   | "downloading"
+  | "removing-bg"
   | "resizing"
   | "saving"
+  | "uploading"
   | "done"
   | "failed";
 
@@ -13,6 +17,8 @@ export interface FileTask {
   url: string;
   status: FileStatus;
   error?: string;
+  warning?: string;
+  driveUrl?: string;
 }
 
 export interface JobState {
@@ -37,4 +43,34 @@ export interface JobConfig {
 export interface FileParser {
   canParse(file: File): boolean;
   parse(file: File, sheetName?: string): Promise<ParsedData>;
+}
+
+// === Pipeline Mode Types ===
+
+export type PipelineStage = 1 | 2 | 3 | 4 | 5;
+
+export interface PipelineRow {
+  name: string;
+  imageUrl: string;
+  status: FileStatus;
+  processedBlob?: Blob;
+  driveUrl?: string;
+  error?: string;
+  warning?: string;
+}
+
+export interface SheetConfig {
+  url: string;
+  spreadsheetId: string;
+  tab: string;
+  nameColIndex: number;
+  headers: string[];
+}
+
+export interface PipelineState {
+  stage: PipelineStage;
+  sheetConfig: SheetConfig | null;
+  rows: PipelineRow[];
+  driveFolderId: string | null;
+  dimensions: { width: number; height: number };
 }

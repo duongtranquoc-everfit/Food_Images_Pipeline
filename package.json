@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "bun run build.ts --watch",
-    "build": "bun run build.ts"
+    "build": "bun run build.ts",
+    "dedupe:gemini": "bun run tools/exercise-dedupe/exercise-dedupe-gemini.ts",
+    "dedupe:csv": "bun run tools/exercise-dedupe/exercise-dedupe-pipeline.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -16,12 +18,15 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@imgly/background-removal": "^1.7.0",
     "@mantine/core": "^8.3.16",
     "@mantine/dropzone": "^8.3.16",
     "@mantine/hooks": "^8.3.16",
     "jimp": "^1.6.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "sharp": "^0.34.5",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.11"
   }
