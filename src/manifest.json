@@ -3,6 +3,7 @@
   "name": "Food Image Pipeline",
   "version": "2.0.0",
   "description": "Find, process, and upload food images — from Google Sheets to Google Drive",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzkPqPmK9pqJb5M1IIHC6P1/fiSj5jK4VdyzwGpjBTD4KaoTqqyRGdsbn5kMeivMmVTPfhFUYNJuHXgKIqLJHmbjZHf9ijItx6y6iC7lHGh4/a/RxTOLdkoU1NzE9hg+fvQ7F9DTyd8Q8dqYO02tvH7BtYn1bxrvyNB7fBAmzAbLfAjIRXwHTELIFFqBW+2vim1cCdFr76ZWfT505W/YzhzDdBdGDxTA+g0YuPlH5u2+XxWEp7ryPKWrizgm6oKzR9s7A5GJKLEsN9342OzyUIPxhOV64LQ32DyWin56dWLv/J9k/mDZNsLp0yUY//Jsct/dx7BzemeIeWXE8P3juswIDAQAB",
   "permissions": [
     "sidePanel",
     "storage",
@@ -12,7 +13,9 @@
     "tabs",
     "identity"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "oauth2": {
     "client_id": "1049683790942-6csfgrnqvs23rl9asfai89qj1bp5nlmr.apps.googleusercontent.com",
     "scopes": [
