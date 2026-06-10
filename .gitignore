@@ -37,3 +37,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 extension-key.pem
 *.pem
 .ext-pubkey-b64.txt
+
+# Unrelated exercise-dedup tools (belong to another task, keep local only)
+tools/

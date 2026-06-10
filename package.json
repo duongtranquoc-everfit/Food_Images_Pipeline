@@ -5,9 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run build.ts --watch",
-    "build": "bun run build.ts",
-    "dedupe:gemini": "bun run tools/exercise-dedupe/exercise-dedupe-gemini.ts",
-    "dedupe:csv": "bun run tools/exercise-dedupe/exercise-dedupe-pipeline.ts"
+    "build": "bun run build.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
