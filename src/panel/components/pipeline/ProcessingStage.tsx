@@ -159,7 +159,7 @@ export function ProcessingStage() {
 
           {enableBgRemoval && (
             <Alert color="blue" variant="light">
-              Background removal uses Neo server + remove.bg. Make sure the server is running: bun neo-server.ts
+              Background removal uses local InSPyReNet. Make sure the server is running: bun image-server.ts
             </Alert>
           )}
 

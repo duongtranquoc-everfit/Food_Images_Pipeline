@@ -4,20 +4,19 @@
  *
  * Local HTTP server that handles image processing for the extension:
  *   - Fetches images from URLs
- *   - Removes background via Neo CLI + remove.bg
+ *   - Removes background via local InSPyReNet server (bg_server.py)
  *   - Resizes onto white canvas
  *   - Returns processed image
  *
- * Usage: bun neo-server.ts
+ * Usage: bun image-server.ts
  */
 
-import { SERVER_PORT, CDP_URL } from "./src/server/config";
+import { SERVER_PORT, BG_SERVER_URL, BG_MODE } from "./src/server/config";
 import {
-  isNeoInstalled,
-  isCdpReachable,
-  ensureCdp,
+  ensureBgServer,
+  bgHealthy,
   removeBackground,
-} from "./src/server/neo-helpers";
+} from "./src/server/bg-helpers";
 import { resizeImage } from "./src/server/image-resize";
 
 const CORS_HEADERS = {
@@ -33,21 +32,31 @@ function jsonResponse(data: object, status = 200): Response {
   });
 }
 
+// --- Resilience: never let a single request's stray error kill the server ---
+process.on("unhandledRejection", (reason) => {
+  console.error("[server] Unhandled rejection (ignored, server stays up):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[server] Uncaught exception (ignored, server stays up):", err);
+});
+
 // --- Startup: try to connect CDP but don't fail if unavailable ---
-console.log("[server] Starting Neo Image Processing Server...");
+console.log("[server] Starting Image Processing Server...");
 
-const neoAvailable = isNeoInstalled();
-let cdpReady = false;
-
-if (neoAvailable) {
-  cdpReady = await ensureCdp();
-  if (!cdpReady) {
-    console.warn("[server] Chrome CDP not available. Background removal will be disabled.");
-    console.warn("[server] To enable, run: neo start");
+// Background removal now uses the local InSPyReNet server (bg_server.py) instead
+// of the remove.bg website. Start it (loads the model warm) so the first request
+// isn't slow; resize-only mode still works even if it fails to start.
+let bgReady = false;
+try {
+  bgReady = await ensureBgServer();
+  if (bgReady) {
+    console.log(`[server] Background removal ready via InSPyReNet (${BG_SERVER_URL}, mode=${BG_MODE})`);
+  } else {
+    console.warn("[server] InSPyReNet server did not become healthy in time. Background removal disabled.");
   }
-} else {
-  console.warn("[server] Neo CLI not found. Background removal will be disabled.");
-  console.warn("[server] Server will still work for resize-only mode (skipBgRemoval=true).");
+} catch (e) {
+  console.warn(`[server] Could not start InSPyReNet server: ${(e as Error).message}`);
+  console.warn("[server] Server still works for resize-only mode (skipBgRemoval=true).");
 }
 
 // --- Server ---
@@ -64,19 +73,16 @@ Bun.serve({
 
     // GET /health
     if (url.pathname === "/health" && req.method === "GET") {
-      const neo = isNeoInstalled();
-      const cdp = await isCdpReachable();
-      const bgRemovalAvailable = neo && cdp;
-
-      // Server is always "ok" - bg removal is optional
+      const bgRemovalAvailable = await bgHealthy();
       return jsonResponse({
         status: "ok",
-        neo,
-        cdp,
+        engine: "inspyrenet",
+        bgServer: BG_SERVER_URL,
+        bgMode: BG_MODE,
         bgRemovalAvailable,
         message: bgRemovalAvailable
           ? undefined
-          : "Background removal unavailable. Resize-only mode active.",
+          : "Background removal server not ready. Resize-only mode active.",
       });
     }
 

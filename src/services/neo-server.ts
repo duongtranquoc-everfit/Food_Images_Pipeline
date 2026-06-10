@@ -29,7 +29,7 @@ export async function checkNeoServer(): Promise<ServerStatus> {
   } catch {
     return {
       ok: false,
-      message: "Neo server chưa chạy. Chạy lệnh: bun neo-server.ts",
+      message: "Server chưa chạy. Chạy lệnh: bun image-server.ts",
     };
   }
 }

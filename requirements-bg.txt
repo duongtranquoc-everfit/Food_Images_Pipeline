@@ -1,0 +1,9 @@
+# Dependencies for bg_server.py (InSPyReNet background removal).
+# On Apple Silicon, create an arm64 venv so PyTorch can use the GPU (MPS):
+#
+#   arch -arm64 /usr/bin/python3 -m venv ~/inspyrenet-env
+#   arch -arm64 ~/inspyrenet-env/bin/pip install -r requirements-bg.txt
+#
+# Then `bun image-server.ts` auto-starts bg_server.py from this venv.
+transparent-background>=1.3.4
+numpy<2
