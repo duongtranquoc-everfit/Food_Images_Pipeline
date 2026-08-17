@@ -30,9 +30,20 @@ export function ProcessingStage() {
   const abortRef = useRef<AbortController | null>(null);
   const pausedRef = useRef(false);
   const [enableBgRemoval, setEnableBgRemoval] = useState(true);
+  const [enableRecipeResize, setEnableRecipeResize] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const rowsToProcess = pState.rows.filter((r) => r.imageUrl);
+
+  const handleToggleBgRemoval = useCallback((checked: boolean) => {
+    setEnableBgRemoval(checked);
+    if (checked) setEnableRecipeResize(false);
+  }, []);
+
+  const handleToggleRecipeResize = useCallback((checked: boolean) => {
+    setEnableRecipeResize(checked);
+    if (checked) setEnableBgRemoval(false);
+  }, []);
 
   const handleStart = useCallback(async () => {
     setServerError(null);
@@ -42,9 +53,11 @@ export function ProcessingStage() {
       return;
     }
 
+    const recipeResizeThisRun = enableRecipeResize;
+
     // Decide once for this run (avoids stale enableBgRemoval after setState)
-    let skipBgRemovalThisRun = !enableBgRemoval;
-    if (enableBgRemoval && !serverStatus.bgRemovalAvailable) {
+    let skipBgRemovalThisRun = recipeResizeThisRun || !enableBgRemoval;
+    if (!recipeResizeThisRun && enableBgRemoval && !serverStatus.bgRemovalAvailable) {
       skipBgRemovalThisRun = true;
       setEnableBgRemoval(false);
       setServerError("Neo/CDP not available — switched to resize-only mode");
@@ -82,6 +95,7 @@ export function ProcessingStage() {
           width,
           height,
           skipBgRemoval: skipBgRemovalThisRun,
+          recipeResize: recipeResizeThisRun,
           abortSignal: abortRef.current.signal,
           onStatus: (status) =>
             updateRow(rowIndex, { status: status as any }),
@@ -108,7 +122,7 @@ export function ProcessingStage() {
     if (!abortRef.current?.signal.aborted) {
       setDone(true);
     }
-  }, [width, height, updateRow, setDimensions, enableBgRemoval]);
+  }, [width, height, updateRow, setDimensions, enableBgRemoval, enableRecipeResize]);
 
   const completedCount = pState.rows.filter((r) => r.status === "done").length;
   const failedCount = pState.rows.filter((r) => r.status === "failed").length;
@@ -154,12 +168,27 @@ export function ProcessingStage() {
             label="Remove background (via remove.bg)"
             description="Opens remove.bg in background tab to process each image"
             checked={enableBgRemoval}
-            onChange={(e) => setEnableBgRemoval(e.currentTarget.checked)}
+            onChange={(e) => handleToggleBgRemoval(e.currentTarget.checked)}
+          />
+
+          <Switch
+            label="Resize recipe image"
+            description="Giữ nguyên ảnh gốc, canh giữa chủ thể, không nền trắng — chỉ resize/crop đúng kích thước mong muốn"
+            checked={enableRecipeResize}
+            onChange={(e) => handleToggleRecipeResize(e.currentTarget.checked)}
           />
 
           {enableBgRemoval && (
             <Alert color="blue" variant="light">
               Background removal uses local InSPyReNet. Make sure the server is running: bun image-server.ts
+            </Alert>
+          )}
+
+          {enableRecipeResize && (
+            <Alert color="grape" variant="light">
+              Resize recipe image: ảnh gốc được scale để phủ kín khung {width}x{height} rồi crop canh giữa —
+              không bóp méo, không nền trắng. Nếu ảnh gốc nhỏ hơn khung, ảnh sẽ được phóng to. Vẫn cần local
+              server đang chạy: bun image-server.ts
             </Alert>
           )}
 

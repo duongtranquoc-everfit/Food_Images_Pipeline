@@ -106,3 +106,25 @@ export async function resizeImage(
     .jpeg({ quality: JPEG_QUALITY })
     .toBuffer();
 }
+
+/**
+ * Recipe photo resize: scales the original image to fully cover the target box
+ * (no white background, no letterboxing), then crops centered to the exact
+ * target dimensions. Aspect ratio is preserved (no distortion); upscaling is
+ * allowed when the source is smaller than the target.
+ */
+export async function resizeCoverCentered(
+  imageBuffer: Buffer,
+  targetWidth: number,
+  targetHeight: number
+): Promise<Buffer> {
+  return sharp(imageBuffer)
+    .resize(targetWidth, targetHeight, {
+      fit: "cover",
+      position: "centre",
+      kernel: sharp.kernel.lanczos3,
+    })
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+}

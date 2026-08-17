@@ -17,7 +17,7 @@ import {
   bgHealthy,
   removeBackground,
 } from "./src/server/bg-helpers";
-import { resizeImage } from "./src/server/image-resize";
+import { resizeImage, resizeCoverCentered } from "./src/server/image-resize";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,14 +88,20 @@ Bun.serve({
 
     // POST /process
     if (url.pathname === "/process" && req.method === "POST") {
-      let body: { imageUrl?: string; width?: number; height?: number; skipBgRemoval?: boolean };
+      let body: {
+        imageUrl?: string;
+        width?: number;
+        height?: number;
+        skipBgRemoval?: boolean;
+        recipeResize?: boolean;
+      };
       try {
         body = await req.json();
       } catch {
         return jsonResponse({ error: "Invalid JSON body" }, 400);
       }
 
-      const { imageUrl, width, height, skipBgRemoval } = body;
+      const { imageUrl, width, height, skipBgRemoval, recipeResize } = body;
       if (!imageUrl || !width || !height) {
         return jsonResponse(
           { error: "Missing required fields: imageUrl, width, height" },
@@ -103,7 +109,47 @@ Bun.serve({
         );
       }
 
-      console.log(`[process] ${imageUrl} → ${width}x${height}${skipBgRemoval ? " (no bg removal)" : ""}`);
+      console.log(
+        `[process] ${imageUrl} → ${width}x${height}${recipeResize ? " (recipe resize, no bg removal)" : skipBgRemoval ? " (no bg removal)" : ""}`
+      );
+
+      // Recipe resize mode: crop/scale the original photo to the exact target
+      // size (cover fit, centered) — never touches background removal or the
+      // white-canvas subject compositing used by the other modes.
+      if (recipeResize) {
+        let sourceBuffer: Buffer;
+        try {
+          const resp = await fetch(imageUrl, { signal: AbortSignal.timeout(30_000) });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const contentType = resp.headers.get("content-type") || "";
+          if (!contentType.startsWith("image/")) {
+            throw new Error(`Not an image: ${contentType}`);
+          }
+          sourceBuffer = Buffer.from(await resp.arrayBuffer());
+        } catch (err) {
+          return jsonResponse(
+            { error: `Failed to fetch image: ${(err as Error).message}` },
+            422
+          );
+        }
+
+        try {
+          const resultBuffer = await resizeCoverCentered(sourceBuffer, width, height);
+          return new Response(resultBuffer, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "image/jpeg",
+              "Content-Length": String(resultBuffer.byteLength),
+            },
+          });
+        } catch (err) {
+          return jsonResponse(
+            { error: `Resize failed: ${(err as Error).message}` },
+            422
+          );
+        }
+      }
 
       // Step 1: Fetch image
       let imageBuffer: Buffer;

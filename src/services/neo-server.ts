@@ -40,12 +40,13 @@ export async function processViaServer(
   width: number,
   height: number,
   abortSignal?: AbortSignal,
-  skipBgRemoval?: boolean
+  skipBgRemoval?: boolean,
+  recipeResize?: boolean
 ): Promise<Blob> {
   const resp = await fetch(`${NEO_SERVER_URL}/process`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageUrl, width, height, skipBgRemoval }),
+    body: JSON.stringify({ imageUrl, width, height, skipBgRemoval, recipeResize }),
     signal: abortSignal,
   });
 
